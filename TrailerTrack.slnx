@@ -1,0 +1,7 @@
+<Solution>
+  <Project Path="TrailerTrack.Application/TrailerTrack.Application.csproj" />
+  <Project Path="TrailerTrack.Domain/TrailerTrack.Domain.csproj" />
+  <Project Path="TrailerTrack.Infrastructure/TrailerTrack.Infrastructure.csproj" />
+  <Project Path="TrailerTrack.Tests/TrailerTrack.Tests.csproj" />
+  <Project Path="TrailerTrack.Web/TrailerTrack.Web.csproj" />
+</Solution>

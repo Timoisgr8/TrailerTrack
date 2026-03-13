@@ -1,0 +1,16 @@
+﻿@inherits LayoutComponentBase
+
+<div class="flex h-screen bg-fleet-bg">
+    <aside class="w-64 bg-fleet-surface border-r border-fleet-border flex flex-col">
+        <NavMenu />
+    </aside>
+    <main class="flex-1 overflow-auto bg-fleet-bg">
+        @Body
+    </main>
+</div>
+
+<div id="blazor-error-ui" data-nosnippet>
+    An unhandled error has occurred.
+    <a href="." class="reload">Reload</a>
+    <span class="dismiss">🗙</span>
+</div>

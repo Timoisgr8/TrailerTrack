@@ -1,0 +1,287 @@
+﻿@page "/assets/{Id:guid}"
+@rendermode @(new InteractiveServerRenderMode(prerender: false))
+@attribute [Authorize]
+
+@inject IMediator Mediator
+@inject NavigationManager Nav
+
+
+
+<div class="p-6 min-h-screen">
+    <div class="mb-6">
+        <h1 class="text-fleet-text font-mono text-2xl">ASSET</h1>
+    </div>
+
+    @if (asset is null)
+    {
+        <p class="text-fleet-muted font-mono text-sm">Loading...</p>
+    }
+    else
+    {
+        @* SECTION 1 - Back button, Asset Code, Status*@
+        <div class="flex items-center gap-4 mb-6">
+            <button @onclick="() => GoToAssets()"
+                    class="text-fleet-muted hover:text-fleet-text font-mono text-sm">
+                ← BACK
+            </button>
+            <h1 class="text-fleet-text font-mono text-2xl">@asset.AssetCode</h1>
+            <span class="font-mono text-xs px-2 py-1 border @GetStatusClass(asset.Status)">
+                @asset.StatusLabel
+            </span>
+        </div>
+
+        @* SECTION 2 - Detail Grid*@
+        <div class="grid grid-cols-2 gap-4 mb-8 bg-fleet-surface border border-fleet-border p-4">
+            <div>
+                <p class="text-fleet-muted font-mono text-xs">TYPE</p>
+                <p class="text-fleet-text font-mono text-sm">@asset.TypeLabel</p>
+            </div>
+            <div>
+                <p class="text-fleet-muted font-mono text-xs">LOCATION</p>
+                <p class="text-fleet-text font-mono text-sm">@asset.Location</p>
+            </div>
+            <div>
+                <p class="text-fleet-muted font-mono text-xs">LAST SERVICED AT</p>
+                <p class="text-fleet-text font-mono text-sm">
+                    @(asset.LastServicedAt.HasValue? asset.LastServicedAt.Value.ToString("dd MMM yyyy") : "N/A")
+                </p>
+            </div>
+            <div>
+                <p class="text-fleet-muted font-mono text-xs">CREATED AT</p>
+                <p class="text-fleet-text font-mono text-sm">@asset.CreatedAt</p>
+            </div>
+            <div>
+                <p class="text-fleet-muted font-mono text-xs">UPDATED AT</p>
+                <p class="text-fleet-text font-mono text-sm">@asset.UpdatedAt</p>
+            </div>
+        </div>
+
+        @* SECTION 3 - Action buttons *@
+        <div class="flex items-center justify-between mb-6">
+            <div class="flex gap-3">
+                @if (asset.Status == AssetStatus.Available)
+                {
+                    <button @onclick="() => TogglePanel(Panel.HireOut)"
+                            class="border border-fleet-amber text-fleet-amber font-mono text-sm px-4 py-2 hover:bg-fleet-amber hover:text-fleet-bg transition-colors">
+                        HIRE OUT
+                    </button>
+                }
+                @if (asset.Status == AssetStatus.HiredOut)
+                {
+                    <button @onclick="() => TogglePanel(Panel.Return)"
+                            class="border border-green-500 text-green-500 font-mono text-sm px-4 py-2 hover:bg-green-500 hover:text-white transition-colors">
+                        RETURN
+                    </button>
+                }
+                <AuthorizeView Roles="Admin">
+                    <Authorized>
+                        @if (asset.Status == AssetStatus.Available)
+                        {
+                            <button @onclick="() => TogglePanel(Panel.MaintenanceStart)"
+                                    class="border border-blue-500 text-blue-400 font-mono text-sm px-4 py-2 hover:bg-blue-500 hover:text-white transition-colors">
+                                START MAINTENANCE
+                            </button>
+                        }
+                        @if (asset.Status == AssetStatus.UnderMaintenance)
+                        {
+                            <button @onclick="() => TogglePanel(Panel.MaintenanceComplete)"
+                                    class="border border-blue-500 text-blue-400 font-mono text-sm px-4 py-2 hover:bg-blue-500 hover:text-white transition-colors">
+                                COMPLETE MAINTENANCE
+                            </button>
+                        }
+                    </Authorized>
+                </AuthorizeView>
+            </div>
+
+            <AuthorizeView Roles="Admin">
+                <Authorized>
+                    @if (asset.Status != AssetStatus.Retired)
+                    {
+                        <button @onclick="() => TogglePanel(Panel.Retire)"
+                                class="border border-red-500 text-red-500 font-mono text-sm px-4 py-2 hover:bg-red-500 hover:text-white transition-colors">
+                            RETIRE ASSET
+                        </button>
+                    }
+                </Authorized>
+            </AuthorizeView>
+        </div>
+
+
+        @if (openPanel == Panel.HireOut)
+        {
+            <HireOutPanel AssetId="asset.Id" OnSuccess="HandleSuccess" OnCancel="() => openPanel = null" />
+        }
+        @if (openPanel == Panel.Return)
+        {
+            <ReturnPanel AssetId="asset.Id" OnSuccess="HandleSuccess" OnCancel="() => openPanel = null" />
+        }
+        @if (openPanel == Panel.MaintenanceStart)
+        {
+            <StartMaintenancePanel AssetId="asset.Id" OnSuccess="HandleSuccess" OnCancel="() => openPanel = null" />
+        }
+        @if (openPanel == Panel.MaintenanceComplete)
+        {
+            <CompleteMaintenancePanel AssetId="asset.Id" OnSuccess="HandleSuccess" OnCancel="() => openPanel = null" />
+        }
+        @if (openPanel == Panel.Retire)
+        {
+            <RetirePanel AssetId="asset.Id" OnSuccess="HandleSuccess" OnCancel="() => openPanel = null" />
+        }
+
+        @* SECTION 4 - Hire Event History Table*@
+        <p class="text-left text-fleet-muted font-mono text-xl uppercase">HIRE HISTORY</p>
+        <div class="gap-4 mb-8 bg-fleet-surface border border-fleet-border p-4">
+
+            <table class="w-full table-fixed">
+                <thead>
+                    <tr class="border-b border-fleet-border">
+                        <th class="text-left text-fleet-muted font-mono text-xs px-4 py-3 w-32">TYPE</th>
+                        <th class="text-left text-fleet-muted font-mono text-xs px-4 py-3 w-32">EVENT DATE</th>
+                        <th class="text-left text-fleet-muted font-mono text-xs px-4 py-3 w-32">CREATED AT</th>
+                        <th class="text-left text-fleet-muted font-mono text-xs px-4 py-3 w-32">PERFORMED BY</th>
+                        <th class="text-left text-fleet-muted font-mono text-xs px-4 py-3 w-32">CUSTOMER</th>
+                        <th class="text-left text-fleet-muted font-mono text-xs px-4 py-3 w-32">CUSTOMER CONTACT</th>
+                        <th class="text-left text-fleet-muted font-mono text-xs px-4 py-3 w-32">NOTES</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (asset.HireEvents is null || !asset.HireEvents.Any())
+                    {
+                        <tr>
+                            <td colspan="7" class="text-center text-fleet-muted font-mono text-sm px-4 py-6">
+                                No hire history available.
+                            </td>
+                        </tr>
+                    }
+                    else
+                    {
+                        @foreach (var hireEvent in asset.HireEvents)
+                        {
+                            <tr class="border-b border-fleet-border">
+                                <td class="px-4 py-3 font-mono text-sm text-fleet-text">@hireEvent.TypeLabel</td>
+                                <td class="px-4 py-3 font-mono text-sm text-fleet-text">@hireEvent.EventDate.ToString("dd MMM yyyy")</td>
+                                <td class="px-4 py-3 font-mono text-sm text-fleet-text">@hireEvent.CreatedAt.ToString("dd MMM yyyy")</td>
+                                <td class="px-4 py-3 font-mono text-sm text-fleet-text">@hireEvent.PerformedBy</td>
+                                <td class="px-4 py-3 font-mono text-sm text-fleet-text">@hireEvent.Customer</td>
+                                <td class="px-4 py-3 font-mono text-sm text-fleet-text">@hireEvent.CustomerContact</td>
+                                <td class="px-4 py-3 font-mono text-sm text-fleet-muted">@(hireEvent.Notes ?? "-")</td>
+                            </tr>
+                        }
+
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        @* SECTION 5 - Maintenance Log History Table *@
+        <p class="text-left text-fleet-muted font-mono text-xl uppercase">MAINTENANCE LOGS</p>
+        <div class="gap-4 mb-8 bg-fleet-surface border border-fleet-border p-4">
+
+            <table class="w-full table-fixed">
+                <thead>
+                    <tr class="border-b border-fleet-border">
+                        <th class="text-left text-fleet-muted font-mono text-xs px-4 py-3 w-32">DESCRIPTION</th>
+                        <th class="text-left text-fleet-muted font-mono text-xs px-4 py-3 w-32">CREATED AT</th>
+                        <th class="text-left text-fleet-muted font-mono text-xs px-4 py-3 w-32">STARTED AT</th>
+                        <th class="text-left text-fleet-muted font-mono text-xs px-4 py-3 w-32">EXPECTED COMPLETION AT</th>
+                        <th class="text-left text-fleet-muted font-mono text-xs px-4 py-3 w-32">COMPLETED AT</th>
+                        <th class="text-left text-fleet-muted font-mono text-xs px-4 py-3 w-32">COMPLETED NOTES</th>
+                        <th class="text-left text-fleet-muted font-mono text-xs px-4 py-3 w-32">PERFORMED BY</th>
+                        <th class="text-left text-fleet-muted font-mono text-xs px-4 py-3 w-32">COST</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (asset.MaintenanceLogs is null || !asset.MaintenanceLogs.Any())
+                    {
+                        <tr>
+                            <td colspan="8" class="text-center text-fleet-muted font-mono text-sm px-4 py-6">
+                                No maintenance log history available.
+                            </td>
+                        </tr>
+                    }
+                    else
+                    {
+                        @foreach (var maintenanceLog in asset.MaintenanceLogs)
+                        {
+                            <tr class="border-b border-fleet-border">
+                                <td class="px-4 py-3 font-mono text-sm text-fleet-text">@maintenanceLog.Description</td>
+                                <td class="px-4 py-3 font-mono text-sm text-fleet-text">@maintenanceLog.CreatedAt.ToString("dd MMM yyyy")</td>
+                                <td class="px-4 py-3 font-mono text-sm text-fleet-text">@maintenanceLog.StartedAt.ToString("dd MMM yyyy")</td>
+                                
+                                <td class="px-4 py-3 font-mono text-sm text-fleet-text">@(maintenanceLog.ExpectedCompletionAt.HasValue? maintenanceLog.ExpectedCompletionAt.Value.ToString("dd MMM yyyy") : "N/A")</td>
+                                <td class="px-4 py-3 font-mono text-sm text-fleet-text">@(maintenanceLog.CompletedAt.HasValue? maintenanceLog.CompletedAt.Value.ToString("dd MMM yyyy") : "N/A")</td>
+                                <td class="px-4 py-3 font-mono text-sm text-fleet-text">@(maintenanceLog.CompletedNotes ?? "-")</td>
+                                <td class="px-4 py-3 font-mono text-sm text-fleet-text">@maintenanceLog.PerformedBy</td>
+                                <td class="px-4 py-3 font-mono text-sm text-fleet-muted">
+                                    @(maintenanceLog.Cost.HasValue? maintenanceLog.Cost.Value.ToString("C") : "-")
+                                </td>
+
+                            </tr>
+                        }
+
+                    }
+                </tbody>
+            </table>
+        </div>
+        
+    }
+
+
+ 
+</div>
+
+    
+
+@code {
+    [Parameter] public Guid Id { get; set; }
+
+    private enum Panel
+    {
+        HireOut,
+        Return,
+        MaintenanceStart,
+        MaintenanceComplete,
+        Retire
+    }
+
+    private Panel? openPanel;
+
+    private void TogglePanel(Panel panel)
+    {
+        openPanel = openPanel == panel ? null : panel;
+    }
+
+    private AssetDetailDto? asset;
+
+    private void GoToAssets()
+    {
+        Nav.NavigateTo($"/assets");
+    }
+
+    private string GetStatusClass(AssetStatus status) => status switch
+    {
+        AssetStatus.Available => "text-green-400",
+        AssetStatus.HiredOut => "text-fleet-amber",
+        AssetStatus.UnderMaintenance => "text-blue-400",
+        AssetStatus.Retired => "text-fleet-muted",
+        _ => "text-fleet-text"
+    };
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (asset is not null) return;
+    
+        var result = await Mediator.Send(new GetAssetByIdQuery(Id));
+        if (result.IsSuccess)
+            asset = result.Value;
+    }
+
+    private async Task HandleSuccess()
+    {
+        openPanel = null;
+        var result = await Mediator.Send(new GetAssetByIdQuery(Id));
+        if (result.IsSuccess)
+            asset = result.Value;
+        StateHasChanged();
+    }
+}

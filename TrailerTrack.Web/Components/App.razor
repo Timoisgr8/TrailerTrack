@@ -1,0 +1,48 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <base href="/" />
+    <ResourcePreloader />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+        theme: {
+        extend: {
+        fontFamily: {
+        'mono': ['IBM Plex Mono', 'monospace'],
+        'sans': ['IBM Plex Sans', 'sans-serif'],
+        },
+        colors: {
+        'fleet': {
+        'bg': '#0d1117',
+        'surface': '#161b22',
+        'border': '#30363d',
+        'amber': '#f59e0b',
+        'amber-dim': '#92400e',
+        'text': '#e6edf3',
+        'muted': '#8b949e',
+        }
+        }
+        }
+        }
+        }
+    </script>
+    <link rel="stylesheet" href="@Assets["app.css"]" />
+    <link rel="stylesheet" href="@Assets["TrailerTrack.Web.styles.css"]" />
+    <ImportMap />
+    <link rel="icon" type="image/png" href="favicon.png" />
+    <HeadOutlet />
+</head>
+
+<body class="bg-fleet-bg text-fleet-text font-sans">
+    <Routes @rendermode="@(new InteractiveServerRenderMode(prerender: false))" />
+    <ReconnectModal />
+    <script src="@Assets["_framework/blazor.web.js"]"></script>
+</body>
+
+</html>

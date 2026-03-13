@@ -1,0 +1,14 @@
+﻿@page "/access-denied"
+@layout EmptyLayout
+@attribute [AllowAnonymous]
+
+<div class="min-h-screen bg-fleet-bg flex items-center justify-center">
+    <div class="text-center">
+        <p class="text-fleet-amber font-mono text-6xl mb-4">403</p>
+        <p class="text-fleet-text font-mono text-xl mb-2">ACCESS DENIED</p>
+        <p class="text-fleet-muted font-mono text-sm mb-8">You don't have permission to view this page.</p>
+        <a href="/assets" class="border border-fleet-amber text-fleet-amber font-mono text-sm px-4 py-2 hover:bg-fleet-amber hover:text-fleet-bg transition-colors">
+            BACK TO ASSETS
+        </a>
+    </div>
+</div>

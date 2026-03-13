@@ -1,0 +1,79 @@
+﻿@inject IMediator Mediator
+
+<div class="bg-fleet-surface border border-fleet-amber p-4 mb-6">
+    <p class="text-fleet-text font-mono text-sm mb-4">HIRE OUT</p>
+
+    @if (!string.IsNullOrEmpty(error))
+    {
+        <p class="text-red-500 font-mono text-xs mb-4">@error</p>
+    }
+
+    <div class="grid grid-cols-2 gap-4 mb-4">
+        <div>
+            <p class="text-fleet-muted font-mono text-xs mb-1">PERFORMED BY</p>
+            <input @bind="performedBy"
+                   class="bg-transparent border-b border-fleet-border text-fleet-text font-mono text-xs w-full focus:outline-none focus:border-fleet-amber placeholder-fleet-muted" />
+        </div>
+
+        <div>
+            <p class="text-fleet-muted font-mono text-xs mb-1">CUSTOMER</p>
+            <input @bind="customer"
+                   class="bg-transparent border-b border-fleet-border text-fleet-text font-mono text-xs w-full focus:outline-none focus:border-fleet-amber placeholder-fleet-muted" />
+        </div>
+
+        <div>
+            <p class="text-fleet-muted font-mono text-xs mb-1">CUSTOMER CONTACT</p>
+            <input @bind="customerContact"
+                   class="bg-transparent border-b border-fleet-border text-fleet-text font-mono text-xs w-full focus:outline-none focus:border-fleet-amber placeholder-fleet-muted" />
+        </div>
+
+        <div>
+            <p class="text-fleet-muted font-mono text-xs mb-1">HIRE DATE</p>
+            <input type="date" @bind="hireDate"
+                   class="bg-transparent border-b border-fleet-border text-fleet-text font-mono text-xs w-full focus:outline-none focus:border-fleet-amber" />
+        </div>
+    </div>
+
+    <button @onclick="HandleClose"
+            class="font-mono text-xs text-fleet-muted hover:text-fleet-text px-4 py-2 transition-colors">
+        CANCEL
+    </button>
+
+    <button @onclick="HandleSubmit"
+            class="border border-fleet-amber text-fleet-amber font-mono text-xs px-4 py-2 hover:bg-fleet-amber hover:text-fleet-bg transition-colors">
+        CONFIRM
+    </button>
+</div>
+
+@code {
+    [Parameter] public Guid AssetId { get; set; }
+    [Parameter] public EventCallback OnSuccess { get; set; }
+    [Parameter] public EventCallback OnCancel { get; set; }
+
+    private string performedBy = string.Empty;
+    private string customer = string.Empty;
+    private string customerContact = string.Empty;
+    private DateTime hireDate = DateTime.UtcNow.Date;
+
+    private string? error;
+
+    private async Task HandleSubmit()
+    {
+        var result = await Mediator.Send(new HireOutAssetCommand(
+            AssetId,
+            performedBy,
+            customer,
+            customerContact,
+            DateTime.SpecifyKind(hireDate, DateTimeKind.Utc)
+        ));
+        if (result.IsSuccess)
+            await OnSuccess.InvokeAsync();
+        else
+            error = result.Error;
+    }
+
+    private async Task HandleClose()
+    {
+        await OnCancel.InvokeAsync();
+    }
+}

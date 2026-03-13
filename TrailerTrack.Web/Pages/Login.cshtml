@@ -1,0 +1,68 @@
+﻿@page
+@model TrailerTrack.Web.Pages.LoginModel
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+        theme: {
+        extend: {
+        fontFamily: {
+        'mono': ['IBM Plex Mono', 'monospace'],
+        },
+        colors: {
+        'fleet': {
+        'bg': '#0d1117',
+        'surface': '#161b22',
+        'border': '#30363d',
+        'amber': '#f59e0b',
+        'text': '#e6edf3',
+        'muted': '#8b949e',
+        }
+        }
+        }
+        }
+        }
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+</head>
+<body class="bg-fleet-bg min-h-screen flex items-center justify-center font-mono">
+    <div class="bg-fleet-surface border border-fleet-border rounded p-8 w-full max-w-md">
+        
+        <h1 class="text-fleet-amber text-2xl font-semibold mb-2">TRAILERTRACK</h1>
+        <p class="text-fleet-muted text-sm mb-8">Fleet Management System</p>
+
+        <form method="post">
+            @Html.AntiForgeryToken()
+            
+            @if (Model.ErrorMessage is not null)
+            {
+                <p class="text-red-400 text-sm mb-4">@Model.ErrorMessage</p>
+            }
+
+            <div class="mb-4">
+                <label class="text-fleet-muted text-xs block mb-1">EMAIL</label>
+                <input name="Email" type="email"
+                       class="w-full bg-fleet-bg border border-fleet-border text-fleet-text p-2 rounded font-mono focus:outline-none focus:border-fleet-amber"
+                       value="@Model.Email" />
+            </div>
+
+            <div class="mb-6">
+                <label class="text-fleet-muted text-xs block mb-1">PASSWORD</label>
+                <input name="Password" type="password"
+                       class="w-full bg-fleet-bg border border-fleet-border text-fleet-text p-2 rounded font-mono focus:outline-none focus:border-fleet-amber" />
+            </div>
+
+            <button type="submit"
+                    class="w-full bg-fleet-amber text-fleet-bg font-semibold py-2 rounded hover:bg-amber-400 transition-colors">
+                SIGN IN
+            </button>
+        </form>
+    </div>
+</body>
+</html>

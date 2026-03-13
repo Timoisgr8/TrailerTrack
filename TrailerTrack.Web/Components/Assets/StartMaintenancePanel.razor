@@ -1,0 +1,66 @@
+﻿@inject IMediator Mediator
+
+<div class="bg-fleet-surface border border-fleet-amber p-4 mb-6">
+    <p class="text-fleet-text font-mono text-sm mb-4">START MAINTENANCE</p>
+
+    @if (!string.IsNullOrEmpty(error))
+    {
+        <p class="text-red-500 font-mono text-xs mb-4">@error</p>
+    }
+
+    <div class="grid grid-cols-2 gap-4 mb-4">
+        <div>
+            <p class="text-fleet-muted font-mono text-xs mb-1">DESCRIPTION</p>
+            <input @bind="description"
+                   class="bg-transparent border-b border-fleet-border text-fleet-text font-mono text-xs w-full focus:outline-none focus:border-fleet-amber placeholder-fleet-muted" />
+        </div>
+
+        <div>
+            <p class="text-fleet-muted font-mono text-xs mb-1">STARTED AT</p>
+            <input type="date" @bind="startedAt"
+                   class="bg-transparent border-b border-fleet-border text-fleet-text font-mono text-xs w-full focus:outline-none focus:border-fleet-amber" />
+        </div>
+
+        <div>
+            <p class="text-fleet-muted font-mono text-xs mb-1">EXPECTED COMPLETION (OPTIONAL)</p>
+            <input type="date" @bind="expectedCompletionAt"
+                   class="bg-transparent border-b border-fleet-border text-fleet-text font-mono text-xs w-full focus:outline-none focus:border-fleet-amber" />
+        </div>
+    </div>
+
+    <button @onclick="HandleClose"
+            class="font-mono text-xs text-fleet-muted hover:text-fleet-text px-4 py-2 transition-colors">
+        CANCEL
+    </button>
+    <button @onclick="HandleSubmit"
+            class="border border-fleet-amber text-fleet-amber font-mono text-xs px-4 py-2 hover:bg-fleet-amber hover:text-fleet-bg transition-colors">
+        CONFIRM
+    </button>
+</div>
+
+@code {
+    [Parameter] public Guid AssetId { get; set; }
+    [Parameter] public EventCallback OnSuccess { get; set; }
+    [Parameter] public EventCallback OnCancel { get; set; }
+
+    private string description = string.Empty;
+    private DateTime startedAt = DateTime.UtcNow.Date;
+    private DateTime? expectedCompletionAt;
+    private string? error;
+
+    private async Task HandleSubmit()
+    {
+        var result = await Mediator.Send(new StartMaintenanceCommand(
+            description,
+            AssetId,
+            DateTime.SpecifyKind(startedAt, DateTimeKind.Utc),
+            expectedCompletionAt.HasValue ? DateTime.SpecifyKind(expectedCompletionAt.Value, DateTimeKind.Utc) : null));
+
+        if (result.IsSuccess)
+            await OnSuccess.InvokeAsync();
+        else
+            error = result.Error;
+    }
+
+    private async Task HandleClose() => await OnCancel.InvokeAsync();
+}

@@ -1,0 +1,39 @@
+﻿@inject IMediator Mediator
+
+<div class="bg-fleet-surface border border-red-500 p-4 mb-6">
+    <p class="text-fleet-text font-mono text-sm mb-2">RETIRE ASSET</p>
+    <p class="text-fleet-muted font-mono text-xs mb-4">This action is permanent and cannot be undone.</p>
+
+    @if (!string.IsNullOrEmpty(error))
+    {
+        <p class="text-red-500 font-mono text-xs mb-4">@error</p>
+    }
+
+    <button @onclick="HandleClose"
+            class="font-mono text-xs text-fleet-muted hover:text-fleet-text px-4 py-2 transition-colors">
+        CANCEL
+    </button>
+    <button @onclick="HandleSubmit"
+            class="border border-red-500 text-red-500 font-mono text-xs px-4 py-2 hover:bg-red-500 hover:text-white transition-colors">
+        CONFIRM RETIRE
+    </button>
+</div>
+
+@code {
+    [Parameter] public Guid AssetId { get; set; }
+    [Parameter] public EventCallback OnSuccess { get; set; }
+    [Parameter] public EventCallback OnCancel { get; set; }
+
+    private string? error;
+
+    private async Task HandleSubmit()
+    {
+        var result = await Mediator.Send(new RetireAssetCommand(AssetId));
+        if (result.IsSuccess)
+            await OnSuccess.InvokeAsync();
+        else
+            error = result.Error;
+    }
+
+    private async Task HandleClose() => await OnCancel.InvokeAsync();
+}

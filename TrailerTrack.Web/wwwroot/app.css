@@ -1,0 +1,45 @@
+/* Blazor validation styles - mapped to our design system */
+.valid.modified:not([type=checkbox]) {
+    outline: 1px solid #26b050;
+}
+
+.invalid {
+    outline: 1px solid #f59e0b;
+}
+
+.validation-message {
+    color: #f59e0b;
+    font-size: 0.75rem;
+    margin-top: 0.25rem;
+}
+
+.blazor-error-boundary {
+    background: #161b22;
+    border: 1px solid #f59e0b;
+    padding: 1rem;
+    color: #f59e0b;
+    border-radius: 4px;
+}
+
+.blazor-error-boundary::after {
+    content: "An unhandled error has occurred."
+}
+
+#blazor-error-ui {
+    display: none;
+    position: fixed;
+    bottom: 1rem;
+    right: 1rem;
+    background: #161b22;
+    border: 1px solid #f59e0b;
+    color: #f59e0b;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.75rem;
+    padding: 0.75rem 1rem;
+    border-radius: 4px;
+    z-index: 1000;
+}
+
+#blazor-error-ui.blazor-error-ui-show {
+    display: block;
+}

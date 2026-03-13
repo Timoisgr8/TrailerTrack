@@ -1,0 +1,188 @@
+﻿@page "/assets"
+@rendermode @(new InteractiveServerRenderMode(prerender: false))
+@attribute [Authorize]
+
+@inject IMediator Mediator
+@inject NavigationManager Nav
+
+<div class="p-6 min-h-screen" @onclick="() => openDropdown = null">
+    <div class="flex items-center justify-between mb-6">
+        <h1 class="text-fleet-text font-mono text-2xl">ASSETS</h1>
+    
+        <AuthorizeView Roles="Admin">
+            <Authorized>
+                <button @onclick="() => showCreatePanel = true"
+                        class="bg-fleet-amber text-fleet-bg font-mono text-sm font-semibold px-4 py-2 rounded hover:bg-amber-400 transition-colors">
+                    + CREATE ASSET
+                </button>
+
+            </Authorized>
+        </AuthorizeView>
+    </div>
+
+    @if (showCreatePanel)
+    {
+        <CreateAssetPanel OnSuccess="HandleCreateSuccess"
+                          OnCancel="() => showCreatePanel = false" />
+    }
+
+    <table class="w-full table-fixed">
+        @if (allAssets is null)
+        {
+            <p class="text-fleet-muted font-mono text-sm p-4">Loading...</p>
+        }
+        else
+        {
+            <thead>
+                <tr class="border-b border-fleet-border">
+                    <th class="text-left text-fleet-muted font-mono text-xs px-4 py-3 w-32">CODE</th>
+
+                    <th class="text-left text-fleet-muted font-mono text-xs px-4 py-3 w-48 relative">
+                        <button @onclick='() => ToggleDropdown("type")'
+                                @onclick:stopPropagation="true"
+                                class="flex items-center gap-1 hover:text-fleet-text transition-colors">
+                            TYPE <span>▼</span>
+                        </button>
+
+                        @if (openDropdown == "type")
+                        {
+                            <div @onclick:stopPropagation="true" class="absolute top-full left-0 bg-fleet-surface border border-fleet-amber p-2 z-10 min-w-36">
+                                @foreach (var type in Enum.GetValues<AssetType>())
+                                {
+                                    <label class="flex items-center gap-2 px-2 py-1 cursor-pointer hover:text-fleet-text">
+                                        <input type="checkbox"
+                                               checked="@selectedTypes.Contains(type)"
+                                               @onchange="() => ToggleType(type)" />
+                                        <span class="font-mono text-xs">@type.ToLabel()</span>
+                                    </label>
+                                }
+                            </div>
+                        }
+                    </th>
+
+                    <th class="text-left text-fleet-muted font-mono text-xs px-4 py-3 w-48 relative">
+                        <button @onclick='() => ToggleDropdown("status")'
+                                @onclick:stopPropagation="true"
+                                class="flex items-center gap-1 hover:text-fleet-text transition-colors">
+                            STATUS <span>▼</span>
+                        </button>
+
+                        @if (openDropdown == "status")
+                        {
+                            <div @onclick:stopPropagation="true" class="absolute top-full left-0 bg-fleet-surface border border-fleet-amber p-2 z-10 min-w-36">
+                                @foreach (var status in Enum.GetValues<AssetStatus>())
+                                {
+                                    <label class="flex items-center gap-2 px-2 py-1 cursor-pointer hover:text-fleet-text">
+                                        <input type="checkbox"
+                                               checked="@selectedStatuses.Contains(status)"
+                                               @onchange="() => ToggleStatus(status)" />
+                                        <span class="font-mono text-xs @GetStatusClass(status)">@status.ToLabel()</span>
+                                    </label>
+                                }
+                            </div>
+                        }
+                    </th>
+
+                    <th class="text-left text-fleet-muted font-mono text-xs px-4 py-3">
+                        <input @bind="locationFilter"
+                               @bind:event="oninput"
+                               placeholder="LOCATION..."
+                               class="bg-transparent border-b border-fleet-border text-fleet-text font-mono text-xs w-full focus:outline-none focus:border-fleet-amber placeholder-fleet-muted" />
+                    </th>
+
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var asset in FilteredAssets)
+                {
+                    <tr @onclick="() => GoToAsset(asset.Id)"
+                        @onclick:stopPropagation="true"
+                        class="border-b border-fleet-border hover:bg-fleet-surface cursor-pointer">
+                        <td class="px-4 py-3 font-mono text-sm text-fleet-text">@asset.AssetCode</td>
+                        <td class="px-4 py-3 font-mono text-sm text-fleet-text">@asset.TypeLabel</td>
+                        <td class="px-4 py-3 font-mono text-sm @GetStatusClass(asset.Status)">
+                            @asset.StatusLabel
+                        </td>
+                        <td class="px-4 py-3 font-mono text-sm text-fleet-text">@asset.Location</td>
+                    </tr>
+                }
+            </tbody>
+        }
+    </table>
+</div>
+
+
+
+@code {
+    private IReadOnlyList<AssetDto>? allAssets;
+
+    private string? openDropdown; // "status", "type", "location", or null
+
+    private HashSet<AssetStatus> selectedStatuses = new();
+    private HashSet<AssetType> selectedTypes = new();
+    private string locationFilter = string.Empty;
+
+    private bool showCreatePanel = false;
+
+    private IReadOnlyList<AssetDto>? FilteredAssets => allAssets?
+        .Where(a => selectedStatuses.Count == 0 || selectedStatuses.Contains(a.Status))
+        .Where(a => selectedTypes.Count == 0 || selectedTypes.Contains(a.Type))
+        .Where(a => string.IsNullOrEmpty(locationFilter) || a.Location.Contains(locationFilter, StringComparison.OrdinalIgnoreCase))
+        .ToList();
+
+    private void GoToAsset(Guid id)
+    {
+        Nav.NavigateTo($"/assets/{id}");
+    }
+
+    private string GetStatusClass(AssetStatus status) => status switch
+    {
+        AssetStatus.Available => "text-green-400",
+        AssetStatus.HiredOut => "text-fleet-amber",
+        AssetStatus.UnderMaintenance => "text-blue-400",
+        AssetStatus.Retired => "text-fleet-muted",
+        _ => "text-fleet-text"
+    };
+
+    protected override async Task OnInitializedAsync()
+    {
+        var result = await Mediator.Send(new GetAllAssetsQuery());
+        if (result.IsSuccess)
+            allAssets = result.Value;
+
+        // Default: all statuses except Retired
+        selectedStatuses = Enum.GetValues<AssetStatus>()
+            .Where(s => s != AssetStatus.Retired)
+            .ToHashSet();
+
+        // Default: all types selected
+        selectedTypes = Enum.GetValues<AssetType>()
+            .ToHashSet();
+    }
+
+    private void ToggleType(AssetType type)
+    {
+        if (!selectedTypes.Add(type))
+            selectedTypes.Remove(type);
+    }
+
+
+    private void ToggleStatus(AssetStatus status)
+    {
+        if (!selectedStatuses.Add(status))
+            selectedStatuses.Remove(status);
+    }
+
+    private void ToggleDropdown(string name)
+    {
+        openDropdown = openDropdown == name ? null : name;
+    }
+
+    private async Task HandleCreateSuccess()
+    {
+        showCreatePanel = false;
+        var result = await Mediator.Send(new GetAllAssetsQuery());
+        if (result.IsSuccess)
+            allAssets = result.Value;
+    }
+}
